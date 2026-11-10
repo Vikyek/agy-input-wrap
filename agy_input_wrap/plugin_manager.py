@@ -11,6 +11,7 @@ from typing import Any, Optional, Sequence
 from agy_input_wrap.actions import Action
 from agy_input_wrap.plugin_base import InputPlugin
 from agy_input_wrap.plugins.add_dir_sequencer import AddDirSequencerPlugin
+from agy_input_wrap.plugins.toon_converter import ToonConverterPlugin
 
 
 class PluginManager:
@@ -20,6 +21,7 @@ class PluginManager:
         self._plugins: list[InputPlugin] = []
         if load_builtins:
             self.register(AddDirSequencerPlugin())
+            self.register(ToonConverterPlugin())
 
     @property
     def plugins(self) -> Sequence[InputPlugin]:
