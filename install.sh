@@ -16,6 +16,14 @@ chmod +x "${SOURCE}"
 ln -sf "${SOURCE}" "${TARGET}"
 chmod +x "${TARGET}"
 
+# Register agent skill if ~/.gemini/config exists
+if [[ -d "${HOME}/.gemini/config" ]]; then
+    SKILL_DIR="${HOME}/.gemini/config/skills/agy-input-wrap"
+    mkdir -p "${SKILL_DIR}"
+    ln -sf "${SCRIPT_DIR}/skills/agy-input-wrap/SKILL.md" "${SKILL_DIR}/SKILL.md"
+    echo "🔌 Registered agent skill at ${SKILL_DIR}/SKILL.md"
+fi
+
 echo "✅ Installed agy-input-wrap successfully:"
 echo "   Source: ${SOURCE}"
 echo "   Target: ${TARGET}"

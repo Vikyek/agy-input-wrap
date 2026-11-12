@@ -88,6 +88,13 @@ agy-input-wrap --version
 agy-input-wrap --list-plugins
 ```
 
+### Agensi & Agent Skill Ingestion (`SKILL.md`)
+
+`agy-input-wrap` is structured as a standard agent skill compliant with the open `SKILL.md` specification and compatible with the Agensi marketplace:
+- Root [`SKILL.md`](SKILL.md) enables direct single-skill ingestion across Agensi, Antigravity, Claude Code, and Codex CLI.
+- Modular skill definition located at [`skills/agy-input-wrap/SKILL.md`](skills/agy-input-wrap/SKILL.md).
+- Teaches connected agents how to intercept, sequence, and tune terminal PTY streams to eliminate prompt truncation.
+
 ---
 
 ## 🔌 Chaining with `agy` and `toon-wrap`

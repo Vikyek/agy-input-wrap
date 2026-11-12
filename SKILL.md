@@ -1,0 +1,1 @@
+skills/agy-input-wrap/SKILL.md
