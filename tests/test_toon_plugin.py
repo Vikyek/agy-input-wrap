@@ -5,8 +5,15 @@ from agy_input_wrap.plugins.toon_converter import ToonConverterPlugin
 from agy_input_wrap.plugin_manager import PluginManager
 
 
+def _ensure_converter(plugin: ToonConverterPlugin) -> None:
+    """Provide a deterministic stub converter when optional toon-mcp is absent (e.g. CI)."""
+    if plugin._converter_fn is None:
+        plugin._converter_fn = lambda obj, aggressive=True: '{"_toon":"stub"}'
+
+
 def test_toon_converter_pure_json():
     plugin = ToonConverterPlugin(min_chars=10)
+    _ensure_converter(plugin)
     data = {"items": [{"id": i, "name": f"item_{i}"} for i in range(10)]}
     json_str = json.dumps(data)
     res = plugin.process_bracketed_paste(json_str)
@@ -17,6 +24,7 @@ def test_toon_converter_pure_json():
 
 def test_toon_converter_embedded_json():
     plugin = ToonConverterPlugin(min_chars=10)
+    _ensure_converter(plugin)
     data = {"items": [{"id": i, "name": f"item_{i}"} for i in range(10)]}
     json_str = json.dumps(data)
     text = f"Here is data:\n{json_str}\nProcess this please."
