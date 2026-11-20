@@ -163,6 +163,7 @@ def run_pty_proxy(
                 if out_chunk == b"":
                     child_open = False
                 elif out_chunk:
+                    processor.observe_output(out_chunk)
                     to_stdout.extend(out_chunk)
 
             if master_fd in writable and to_child:

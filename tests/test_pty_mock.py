@@ -203,6 +203,30 @@ class TestMockPTYIntegration(unittest.TestCase):
         time_diff = prompt_event["time"] - add_dir_event["time"]
         self.assertGreaterEqual(time_diff, 0.12)
 
+    def test_typed_shift_enter_sequencing(self) -> None:
+        """Verifies typed /add-dir <path> + Kitty Shift+Enter + prompt is split and sequenced."""
+        delay_ms = 180
+        events = self._run_with_pty(
+            [
+                b"/add-dir ~/Downloads/Kindle/",
+                b"\x1b[13;2u",
+                b"displaying custom content on jailbroken kindle\r",
+            ],
+            delay_ms=delay_ms,
+        )
+
+        prompt_event = None
+        cr_event = None
+        for e in events:
+            if e["text"] == "\r" or e["bytes"] == [13]:
+                cr_event = e
+            if "displaying custom content on jailbroken kindle" in e["text"]:
+                prompt_event = e
+
+        self.assertIsNotNone(cr_event, f"Child did not receive sequenced CR: {events}")
+        self.assertIsNotNone(prompt_event, f"Child did not receive prompt: {events}")
+        self.assertGreaterEqual(prompt_event["time"] - cr_event["time"], 0.12)
+
 
 if __name__ == "__main__":
     unittest.main()

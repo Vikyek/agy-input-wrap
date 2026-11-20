@@ -143,6 +143,80 @@ class TestStreamProcessorIntegration(unittest.TestCase):
         self.assertEqual(bytes(self.to_child), chunk)
         self.assertFalse(self.scheduler.has_pending())
 
+    def test_stream_typed_kitty_shift_enter_add_dir(self) -> None:
+        self.processor.observe_output(b"\x1b[?2004h\x1b[>5u")
+        for ch in b"/add-dir ~/Downloads/Kindle/":
+            self.processor.feed(bytes([ch]), self.to_child)
+        self.assertEqual(bytes(self.to_child), b"/add-dir ~/Downloads/Kindle/")
+        self.assertFalse(self.scheduler.has_pending())
+
+        # Kitty Shift+Enter arrives split across reads
+        self.processor.feed(b"\x1b[13;", self.to_child)
+        self.assertTrue(self.processor.has_pending_escape())
+        self.processor.feed(b"2u", self.to_child)
+        self.assertFalse(self.processor.has_pending_escape())
+
+        # Dismisses dropdown with Kitty Esc, pauses 30ms, then submits CR
+        self.assertEqual(bytes(self.to_child), b"/add-dir ~/Downloads/Kindle/\x1b[27u")
+        self.assertTrue(self.scheduler.has_pending())
+
+        # Prompt typed during pause queues behind scheduler
+        self.processor.feed(b"displaying custom content on jailbroken kindle\r", self.to_child)
+        self.scheduler._sleep_until = 0.0
+        self.scheduler.dispatch_ready(self.to_child)
+        self.scheduler._sleep_until = 0.0
+        self.scheduler.dispatch_ready(self.to_child)
+        self.assertEqual(
+            bytes(self.to_child),
+            b"/add-dir ~/Downloads/Kindle/\x1b[27u\rdisplaying custom content on jailbroken kindle\r",
+        )
+
+    def test_stream_typed_alt_enter_and_ctrl_j_add_dir(self) -> None:
+        for seq in (b"\x1b\r", b"\n", b"\x1b[27;2;13~"):
+            mgr = PluginManager(load_builtins=True)
+            sched = ActionScheduler()
+            proc = StreamProcessor(mgr, sched)
+            out = bytearray()
+
+            proc.feed(b"/add-dir /tmp/test", out)
+            proc.feed(seq, out)
+            self.assertEqual(bytes(out), b"/add-dir /tmp/test\r")
+            self.assertTrue(sched.has_pending())
+
+            proc.feed(b"next prompt\r", out)
+            sched._sleep_until = 0.0
+            sched.dispatch_ready(out)
+            self.assertEqual(bytes(out), b"/add-dir /tmp/test\rnext prompt\r")
+
+    def test_stream_typed_normal_prompt_shift_enter_passthrough(self) -> None:
+        self.processor.observe_output(b"\x1b[>5u")
+        self.processor.feed(b"hello world", self.to_child)
+        self.processor.feed(b"\x1b[13;2u", self.to_child)
+        self.processor.feed(b"line two", self.to_child)
+        self.assertEqual(bytes(self.to_child), b"hello world\x1b[13;2uline two")
+        self.assertFalse(self.scheduler.has_pending())
+
+    def test_stream_typed_backspace_and_single_paste_then_shift_enter(self) -> None:
+        # Backspace fixes typo in /add-dir
+        self.processor.feed(b"/add-dir /foox\x7f", self.to_child)
+        self.processor.feed(b"\nbar", self.to_child)
+        self.scheduler._sleep_until = 0.0
+        self.scheduler.dispatch_ready(self.to_child)
+        self.assertEqual(bytes(self.to_child), b"/add-dir /foox\x7f\rbar")
+
+        # Reset via CR, then single-line bracketed paste + Shift+Enter
+        self.processor.feed(b"\r", self.to_child)
+        self.to_child.clear()
+        self.processor.feed(b"\x1b[200~/add-dir ~/Downloads/Kindle/\x1b[201~", self.to_child)
+        self.processor.feed(b"\x1b[13;2u", self.to_child)
+        self.processor.feed(b"second line", self.to_child)
+        self.scheduler._sleep_until = 0.0
+        self.scheduler.dispatch_ready(self.to_child)
+        self.assertEqual(
+            bytes(self.to_child),
+            b"\x1b[200~/add-dir ~/Downloads/Kindle/\x1b[201~\rsecond line",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

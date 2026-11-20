@@ -46,6 +46,26 @@ class AddDirSequencerPlugin(InputPlugin):
         if delay_sec is not None:
             self.delay_sec = max(0.0, float(delay_sec))
 
+    @staticmethod
+    def matches_line(line: str) -> bool:
+        """Return True if a single line starts with /add-dir <path>."""
+        return bool(ADD_DIR_LINE_RE.match(line))
+
+    def build_submit_actions(self, *, kitty_escape: bool = False) -> list[Action]:
+        """
+        Build actions to submit an already-typed /add-dir line and pause
+        before subsequent prompt input is delivered.
+        """
+        actions: list[Action] = []
+        if kitty_escape:
+            # Dismiss any open path-completion dropdown without triggering Alt+Enter
+            actions.append(WriteAction(b"\x1b[27u"))
+            actions.append(SleepAction(0.03))
+        actions.append(WriteAction(b"\r"))
+        if self.delay_sec > 0:
+            actions.append(SleepAction(self.delay_sec))
+        return actions
+
     def _sequence_text(
         self,
         text: str,
