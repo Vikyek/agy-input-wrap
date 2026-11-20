@@ -16,10 +16,10 @@ Please inspect this directory and fix the bug
 often pastes both lines directly into the prompt textarea as a single multiline blob, rather than first running the `/add-dir` workspace addition command and then submitting the prompt.
 
 `agy-input-wrap` transparently intercepts terminal inputs:
-1. **Detects** `/add-dir <path>\n<prompt>` (both typed multiline and bracketed paste).
-2. **Feeds** `/add-dir <path>\r` into the child PTY so the TUI processes it as an immediate slash command.
-3. **Pauses** briefly (configurable, default 200ms) to allow the BubbleTea TUI to switch/add the workspace directory.
-4. **Feeds** `<prompt>\r` into the child PTY.
+1. **Detects** `/add-dir <path>\n<prompt>` in both **bracketed pastes** and **interactive typed newline continuations** (Kitty Shift+Enter `\x1b[13;2u`, xterm modifyOtherKeys `\x1b[27;2;13~`, Alt+Enter `\x1b\r`, Ctrl+J `\n`).
+2. **Dismisses & Submits** `/add-dir <path>` — automatically emitting Kitty Escape (`\x1b[27u`) + a brief settle pause before `\r` when the child enables Kitty keyboard protocol so open path-autocomplete dropdowns do not swallow Enter.
+3. **Pauses** briefly (configurable, default 200ms) non-blocking via `select()` to allow the TUI to switch/add the workspace directory while queuing any subsequent typed or pasted input.
+4. **Feeds** `<prompt>\r` (or passes through interactive follow-up keystrokes) into the child PTY.
 5. If `/add-dir <path>` has no following newline/text (e.g. single-line execution), it passes through **untouched**.
 6. All other terminal input passes through with **zero added latency**.
 
@@ -157,9 +157,9 @@ PYTHONPATH=. python3 -m unittest discover -v -s tests
 ```
 
 Tests cover:
-- Passthrough of normal keystrokes and text (0 latency).
-- Passthrough of single-line `/add-dir /foo`.
-- Splitting and delay sequencing of `/add-dir /foo\nbar` (both plain and bracketed paste).
+- Passthrough of normal keystrokes, Shift+Enter on normal prompts, and single-line `/add-dir /foo` (0 latency).
+- Splitting and delay sequencing of `/add-dir /foo\nbar` across plain chunks, bracketed pastes, and interactive typed newline continuations (Kitty Shift+Enter `\x1b[13;2u`, xterm `\x1b[27;2;13~`, Alt+Enter `\x1b\r`, Ctrl+J `\n`).
+- Kitty keyboard protocol detection (`\x1b[>...u` / `\x1b[<...u`) and dropdown dismissal (`\x1b[27u`) before `\r`.
 - Action scheduler and non-blocking timers.
 - Plugin management and dynamic directory loading.
 

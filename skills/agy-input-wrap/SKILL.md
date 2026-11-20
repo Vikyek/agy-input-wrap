@@ -44,10 +44,10 @@ Please inspect this directory and fix the bug
 often dumps both lines simultaneously into the prompt textarea as a single multiline string blob. The agent never executes `/add-dir` as a command, causing missing workspace context and failed executions.
 
 `agy-input-wrap` transparently intercepts the PTY stream:
-1. **Detects** `/add-dir <path>\n<prompt>` (both typed multiline and bracketed paste).
-2. **Feeds** `/add-dir <path>\r` into the child PTY so the TUI processes it as an immediate slash command.
-3. **Pauses** briefly (configurable, default 200ms) non-blocking via `select()` to allow the TUI to switch/add the workspace directory.
-4. **Feeds** `<prompt>\r` into the child PTY.
+1. **Detects** `/add-dir <path>` followed by a newline across both **bracketed pastes** and **interactive typed newline continuations** (Kitty Shift+Enter `\x1b[13;2u`, xterm modifyOtherKeys `\x1b[27;2;13~`, Alt+Enter `\x1b\r`, Ctrl+J `\n`).
+2. **Submits** `/add-dir <path>` cleanly — observing child Kitty keyboard protocol (`\x1b[>...u` / `\x1b[<...u`) and emitting Kitty Escape (`\x1b[27u`) before `\r` when active so open path-autocomplete popups are dismissed instead of accepting a suggestion.
+3. **Pauses** briefly (configurable, default 200ms) non-blocking via `select()` to allow the TUI to add the workspace directory while queuing subsequent keystrokes/paste.
+4. **Delivers** `<prompt>` cleanly onto the fresh prompt line.
 5. All other terminal input passes through with **zero added latency**.
 
 ---

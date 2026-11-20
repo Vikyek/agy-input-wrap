@@ -21,7 +21,9 @@ def build_parser() -> argparse.ArgumentParser:
         prog="agy-input-wrap",
         description=(
             "Run an interactive CLI inside a modular PTY proxy that intercepts and "
-            "sequences multiline commands such as /add-dir for antigravity-cli."
+            "sequences multiline commands such as /add-dir (bracketed pastes and typed "
+            "Shift+Enter/Alt+Enter/Ctrl+J continuations, with Kitty dropdown dismissal) "
+            "for antigravity-cli."
         ),
     )
     parser.add_argument(
